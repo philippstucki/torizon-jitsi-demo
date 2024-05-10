@@ -1,0 +1,80 @@
+# sources for torizon images: https://github.com/torizon/torizon-containers
+version: "3"
+
+services:
+  weston:
+    image: torizon/weston-vivante:3
+    restart: always
+
+    environment:
+      - ACCEPT_FSL_EULA=1
+
+    # Add device access rights through cgroup rules
+    device_cgroup_rules:
+      # ... for tty*
+      - c 4:* rmw
+      # ... for /dev/input devices
+      - c 13:* rmw
+      # ... for /dev/galcore device
+      - c 199:* rmw
+      # ... for /dev/galcore device on i.MX8
+      - c 226:* rmw
+
+    # Required to get udev events from host udevd via netlink
+    network_mode: host
+
+    volumes:
+      - source: /tmp
+        target: /tmp
+        type: bind
+      - source: /dev
+        target: /dev
+        type: bind
+      - source: /run/udev
+        target: /run/udev
+        type: bind
+
+    cap_add:
+      - CAP_SYS_TTY_CONFIG
+
+  chromium:
+    # image: torizon/chromium:3
+    build: ./chromium
+
+    command: https://meet.zrh.init7.net/1234asdf
+
+    depends_on:
+      - weston
+
+    device_cgroup_rules:
+      # ... for /dev/galcore device
+      - c 199:* rmw
+      # ... for /dev/snd/* devices
+      - c 116:* rmw
+      # ... for /dev/video* devices
+      - c 81:* rmw
+
+    security_opt:
+      - seccomp:unconfined
+
+    shm_size: 256mb
+
+    devices:
+      - "/dev/video0:/dev/video0"
+      - "/dev/video1:/dev/video1"
+      - "/dev/video2:/dev/video2"
+      - "/dev/video3:/dev/video3"
+
+    volumes:
+      - source: /tmp
+        target: /tmp
+        type: bind
+      - source: /var/run/dbus
+        target: /var/run/dbus
+        type: bind
+      - source: /dev/galcore
+        target: /dev/galcore
+        type: bind
+      - source: /dev/snd
+        target: /dev/snd
+        type: bind
